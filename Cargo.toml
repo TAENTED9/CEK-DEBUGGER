@@ -1,0 +1,13 @@
+[package]
+name = "CEK-DEBUGGER"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+minicbor = { version = "0.9", features = ["alloc"] }
+hex = "0.4"
+uplc = "1.1.19" # adjust to your local uplc crate version
+# pallas is not required for offline UPLC execution; omit for minimal. Add if need tx parsing.
