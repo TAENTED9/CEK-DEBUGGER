@@ -14,8 +14,8 @@ This document tracks all modifications made to the original Aiken uplc crate.
 
 ### src/machine.rs
 
-- Changed `MachineState` enum from private to `pub(crate)` (line ~XX)
-- Changed `Context` enum from private to `pub(crate)` (line ~XX)
+- Changed `MachineState` enum from private to `pub(crate)` (line ~23)
+- Changed `Context` enum from private to `pub(crate)` (line ~30)
 - Added `pub mod debug;` export
 
 ## Files Added
@@ -29,6 +29,6 @@ This document tracks all modifications made to the original Aiken uplc crate.
 
 ## Why These Changes?
 
-The original uplc crate's `Machine::run()` method evaluates UPLC programs to completion without exposing intermediate states. For debugging Cardano validators, we need visibility into each evaluation step (the CEK machine's Control, Environment, and Continuation).
+The original uplc crate's `Machine::run()` method evaluates UPLC programs to completion without exposing intermediate states. For debugging Cardano validators, we need visibility into each evaluation step (the CEK machine's Control, Environment, and Kontinuation).
 
 These modifications maintain backward compatibility - existing code using `Machine::run()` continues to work unchanged.
