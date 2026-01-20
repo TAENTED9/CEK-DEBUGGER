@@ -1,0 +1,14 @@
+This uplc crate is a modified version of the original uplc crate from the Aiken project.
+
+Original source: https://github.com/aiken-lang/aiken
+Original authors: Aiken Contributors
+Original license: Apache-2.0
+
+Modifications made:
+- Added debug.rs module for CEK machine debugging
+- Made MachineState and Context enums pub(crate) for debugging access
+- Added run_debug() method to Machine for step-by-step execution capture
+
+Modified by: TAENTED
+Date: January 2026
+Project: CEK Debugger for Cardano UPLC

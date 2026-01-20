@@ -1,5 +1,29 @@
+[workspace]
+members = [
+    "crates/uplc",
+]
+
+[workspace.package]
+edition = "2021"
+version = "0.1.0"
+license = "Apache-2.0"
+repository = "https://github.com/TAENTED9/cek-debugger"
+homepage = "https://github.com/TAENTED9/cek-debugger"
+documentation = "https://github.com/TAENTED9/cek-debugger"
+rust-version = "1.72"
+authors = ["TAENTED"]
+
+[workspace.dependencies]
+pallas-addresses = "0.33.0"
+pallas-codec = "0.33.0"
+pallas-crypto = "0.33.0"
+pallas-primitives = "0.33.0"
+pallas-traverse = "0.33.0"
+insta = "1.38.0"
+walkdir = "2.5.0"
+
 [package]
-name = "CEK-DEBUGGER"
+name = "cek-debugger"
 version = "0.1.0"
 edition = "2021"
 
@@ -9,5 +33,6 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 minicbor = { version = "0.9", features = ["alloc"] }
 hex = "0.4"
-uplc = "1.1.19" # adjust to your local uplc crate version
-# pallas is not required for offline UPLC execution; omit for minimal. Add if need tx parsing.
+tokio = { version = "1", features = ["full"] }
+uplc = { path = "./crates/uplc" }
+pallas-primitives.workspace = true
