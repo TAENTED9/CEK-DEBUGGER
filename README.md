@@ -34,19 +34,26 @@ python3 create_uplc.py validator.uplc "(program 1.0.0 (lam x x))"
 ### Run the Debugger
 
 ```bash
-# Basic execution
-cargo run -- validator.uplc
+# Basic - no parameters
+cargo run -- script.uplc
 
-# With parameters
-cargo run -- validator.uplc "deadbeef" "cafebabe"
+# With 1 parameter
+cargo run -- script.uplc <hex_param>
 
-# Release build (optimized)
-cargo run --release -- validator.uplc
+# With multiple parameters
+cargo run -- script.uplc <param1> <param2> <param3>
+
+# JSON format
+cargo run -- validator.json <params...>
+
+# Flat binary format
+cargo run -- validator.flat <params...>
 ```
 
 ### Interactive Commands
 
 During execution:
+
 - `N` - Step to next state
 - `P` - Return to previous state
 - `J` - Jump to specific step
@@ -58,7 +65,7 @@ During execution:
 
 UPLC files must be valid UTF-8 with no byte order mark (BOM).
 
-```
+```txt
 (program 1.0.0
   (lam x x))
 ```
@@ -70,6 +77,7 @@ cargo run -- myvalidator.uplc
 ```
 
 The debugger displays:
+
 - Current step number and execution state
 - Term being evaluated
 - CPU and memory consumption
@@ -79,6 +87,7 @@ The debugger displays:
 ### 3. Interpret Diagnostics
 
 Each step provides:
+
 - **State**: What the CEK machine is doing (Compute, Return, Done, Error)
 - **Explanation**: What operation is occurring in plain English
 - **Guidance**: What to do or fix based on the result
@@ -86,6 +95,7 @@ Each step provides:
 ### 4. Navigate and Debug
 
 Use the interactive commands to:
+
 - Step forward through execution
 - Return to previous steps
 - Jump to specific execution points
@@ -93,7 +103,7 @@ Use the interactive commands to:
 
 ## Project Structure
 
-```
+```txt
 src/
 ├── main.rs              Interactive debugger UI
 ├── diagnostics.rs       Error analysis and explanations
@@ -117,7 +127,7 @@ create_uplc.bat         Batch file creator
 ## Modules
 
 | Module | Responsibility |
-|--------|---|
+
 | `main.rs` | Debugger UI and step navigation |
 | `diagnostics.rs` | Error detection and explanation generation |
 | `executor.rs` | CEK machine execution |
@@ -144,6 +154,7 @@ cargo test -p cek-debugger
 ## Testing
 
 The project includes:
+
 - Unit tests for core components
 - Integration tests for end-to-end workflows
 - Property-based tests for parameter handling
@@ -163,6 +174,7 @@ All tests pass with 100% coverage of project code.
 ## Dependencies
 
 Core dependencies:
+
 - `uplc` - Plutus Core implementation
 - `tokio` - Async runtime
 - `anyhow` - Error handling
@@ -181,7 +193,6 @@ See `Cargo.toml` for complete dependency list.
 ## Common Issues
 
 | Issue | Cause | Solution |
-|-------|-------|----------|
 | "stream did not contain valid UTF-8" | Incorrect file encoding (UTF-16) | Use provided file creation utilities |
 | "No valid program found" | Invalid UPLC syntax or file format | Verify .uplc, .json, or .flat format |
 | "Redeemer parsing failed" | Invalid hex parameter | Provide valid hexadecimal strings |
@@ -230,6 +241,7 @@ Step 0001 │ Return  │ CPU: 9999983900 │ MEM: 13999800
 ## Documentation
 
 For detailed information:
+
 - File creation: See `UPLC_FILE_CREATION.md`
 - Error diagnostics: See `SMART_DIAGNOSTICS_GUIDE.md`
 - Step-by-step tutorial: See `TUTORIAL.md`
@@ -239,6 +251,7 @@ For detailed information:
 ## Support
 
 For issues or questions:
+
 1. Review `ERROR_FIXES_QUICK_REFERENCE.md` for common problems
 2. Consult `SMART_DIAGNOSTICS_GUIDE.md` for error meanings
 3. See `VALIDATOR_DEBUG_GUIDE.md` for comprehensive reference
