@@ -1,6 +1,6 @@
 use super::{
     Context, Machine, MachineState, 
-    value::{Env, Value},
+    value::Value,  // Removed unused Env import
     discharge::value_as_term,
     Error,
 };

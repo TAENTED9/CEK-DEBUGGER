@@ -5,10 +5,12 @@ use minicbor::bytes::ByteVec;
 use serde::Deserialize;
 pub use uplc::ast::Program;
 use uplc::{
-    PlutusData,  // Removed Fragment - it's unused
-    ast::{DeBruijn, FakeNamedDeBruijn, Name, NamedDeBruijn},
+    Fragment, // ADDED: Required for decode_fragment
+    PlutusData,
+    ast::{DeBruijn, FakeNamedDeBruijn, Name, NamedDeBruijn, Term, Constant},
     parser,
 };
+use std::rc::Rc;
 
 #[derive(Clone)]
 pub struct LoadedProgram {
@@ -89,24 +91,38 @@ pub fn parse_parameter(index: usize, parameter: String) -> Result<PlutusData> {
     Ok(data)
 }
 
+// FIXED: Correct implementation of apply_parameters
 pub fn apply_parameters(
     LoadedProgram { filename, program, source_map }: LoadedProgram,
     parameters: Vec<PlutusData>,
 ) -> Result<LoadedProgram> {
-    let mut program = program;
+    let mut term = program.term;
     let mut source_map_offset = 0u64;
+    
+    // Apply each parameter by wrapping the term in an Apply node
     for param in parameters {
-        program = program.apply_data(param);
+        let constant = Constant::Data(param);
+        term = Term::Apply {
+            function: Rc::new(term),
+            argument: Rc::new(Term::Constant(Rc::new(constant))),
+        };
         source_map_offset += 1;
     }
+    
+    let program = Program {
+        version: program.version,
+        term,
+    };
+    
     let source_map = source_map
         .into_iter()
         .map(|(index, location)| (index + source_map_offset, location))
         .collect();
+        
     Ok(LoadedProgram { filename, program, source_map })
 }
 
-#[derive(Deserialize, Debug)]  // Added Deserialize derive
+#[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 struct AikenExport {
     compiled_code: String,

@@ -1,3 +1,4 @@
+use pallas_codec::flat::Flat;
 use crate::{
     ast::{
         Constant, DeBruijn, FakeNamedDeBruijn, Name, NamedDeBruijn, Program, Term, Type, Unique,
@@ -5,14 +6,64 @@ use crate::{
     builtins::DefaultFunction,
     machine::runtime::Compressable,
 };
+
+use pallas_primitives::{Fragment, conway::PlutusData};
+use std::{collections::VecDeque, fmt::Debug, rc::Rc};
+
 use num_bigint::BigInt;
 use pallas_codec::flat::{
-    Flat,
     de::{self, Decode, Decoder},
     en::{self, Encode, Encoder},
 };
-use pallas_primitives::{Fragment, conway::PlutusData};
-use std::{collections::VecDeque, fmt::Debug, rc::Rc};
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FlatBigInt(pub BigInt);
+
+impl Encode for FlatBigInt {
+    fn encode(&self, e: &mut Encoder) -> Result<(), en::Error> {
+        let (sign, bytes) = self.0.to_bytes_be();
+        let sign_bit = if sign == num_bigint::Sign::Minus { 1u8 } else { 0u8 };
+        
+        e.bool(sign_bit != 0);
+        bytes.encode(e)?;  // Vec<u8> should already have Encode impl
+        
+        Ok(())
+    }
+}
+
+impl Decode<'_> for FlatBigInt {
+    fn decode(d: &mut Decoder) -> Result<Self, de::Error> {
+        let is_negative = d.bool()?;
+        let bytes = Vec::<u8>::decode(d)?;  // Vec<u8> should already have Decode impl
+        
+        let sign = if is_negative {
+            num_bigint::Sign::Minus
+        } else {
+            num_bigint::Sign::Plus
+        };
+        
+        Ok(FlatBigInt(BigInt::from_bytes_be(sign, &bytes)))
+    }
+}
+
+// Conversion helpers
+impl From<BigInt> for FlatBigInt {
+    fn from(value: BigInt) -> Self {
+        FlatBigInt(value)
+    }
+}
+
+impl From<FlatBigInt> for BigInt {
+    fn from(value: FlatBigInt) -> Self {
+        value.0
+    }
+}
+
+impl AsRef<BigInt> for FlatBigInt {
+    fn as_ref(&self) -> &BigInt {
+        &self.0
+    }
+}
 
 const BUILTIN_TAG_WIDTH: u32 = 7;
 const CONST_TAG_WIDTH: u32 = 4;
@@ -502,7 +553,7 @@ impl Encode for Constant {
         match self {
             Constant::Integer(i) => {
                 encode_constant(&[0], e)?;
-                i.encode(e)?;
+                FlatBigInt(i.clone()).encode(e)?;
             }
 
             Constant::ByteString(bytes) => {
@@ -576,7 +627,7 @@ impl Encode for Constant {
 
 fn encode_constant_value(x: &Constant, e: &mut Encoder) -> Result<(), en::Error> {
     match x {
-        Constant::Integer(x) => x.encode(e),
+        Constant::Integer(x) => FlatBigInt(x.clone()).encode(e),
         Constant::ByteString(b) => b.encode(e),
         Constant::String(s) => s.encode(e),
         Constant::Unit => Ok(()),
@@ -635,7 +686,7 @@ fn encode_type(typ: &Type, bytes: &mut Vec<u8>) {
 impl Decode<'_> for Constant {
     fn decode(d: &mut Decoder) -> Result<Self, de::Error> {
         match &decode_constant(d)?[..] {
-            [0] => Ok(Constant::Integer(BigInt::decode(d)?)),
+            [0] => Ok(Constant::Integer(FlatBigInt::decode(d)?.0)),
             [1] => Ok(Constant::ByteString(Vec::<u8>::decode(d)?)),
             [2] => Ok(Constant::String(String::decode(d)?)),
             [3] => Ok(Constant::Unit),
@@ -702,7 +753,7 @@ impl Decode<'_> for Constant {
 
 fn decode_constant_value(typ: Rc<Type>, d: &mut Decoder) -> Result<Constant, de::Error> {
     match typ.as_ref() {
-        Type::Integer => Ok(Constant::Integer(BigInt::decode(d)?)),
+        Type::Integer => Ok(Constant::Integer(FlatBigInt::decode(d)?.0)),
         Type::ByteString => Ok(Constant::ByteString(Vec::<u8>::decode(d)?)),
         Type::String => Ok(Constant::String(String::decode(d)?)),
         Type::Unit => Ok(Constant::Unit),
