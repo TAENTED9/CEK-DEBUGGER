@@ -1,14 +1,15 @@
-use anyhow::{Result, anyhow};
+use anyhow::Result;
 use uplc::ast::Program;
 use uplc::machine::Machine;
 use uplc::machine::debug::StepSnapshot;
 use uplc::machine::cost_model::{CostModel, ExBudget};
 use uplc::ast::NamedDeBruijn;
-use pallas_primitives::conway::Language;
+
 
 pub fn execute_program(program: Program<NamedDeBruijn>) -> Result<Vec<StepSnapshot>> {
+    let language = pallas_primitives::conway::Language::PlutusV2;
     let mut machine = Machine::new(
-        Language::PlutusV2,  // or PlutusV1, PlutusV3 depending on your needs
+        language,
         CostModel::default(),
         ExBudget::default(),
         1u32,
@@ -16,7 +17,7 @@ pub fn execute_program(program: Program<NamedDeBruijn>) -> Result<Vec<StepSnapsh
 
     let (_final_term, snapshots) = machine
         .run_debug(program.term)
-        .map_err(|e| anyhow!("Machine execution error: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("Failed to execute UPLC program: {}", e))?;
 
     Ok(snapshots)
 }

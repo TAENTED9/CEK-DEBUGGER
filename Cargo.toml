@@ -36,3 +36,6 @@ hex = "0.4"
 tokio = { version = "1", features = ["full"] }
 uplc = { path = "./crates/uplc" }
 pallas-primitives.workspace = true
+tracing = "0.1"
+tracing-subscriber = "0.3"
+proptest = "1.0"

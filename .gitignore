@@ -14,3 +14,35 @@ Cargo.lock
 # OS
 .DS_Store
 Thumbs.db
+
+# Markdown files - EXCLUDE ALL EXCEPT README
+*.md
+!README.md
+
+# Documentation
+/docs/_build/
+/docs/.doctrees/
+
+# Build outputs
+*.o
+*.a
+*.so
+*.dylib
+*.dll
+*.exe
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Logs
+*.log
+logs/
+
+# Local environment
+.env
+.env.local
+*.pem
+*.key

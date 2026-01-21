@@ -3,9 +3,9 @@ use std::{collections::BTreeMap, ffi::OsStr, fs, path::Path};
 use anyhow::{Context, Result, anyhow};
 use minicbor::bytes::ByteVec;
 use serde::Deserialize;
+use tracing::{info, warn};
 pub use uplc::ast::Program;
 use uplc::{
-    Fragment, // ADDED: Required for decode_fragment
     PlutusData,
     ast::{DeBruijn, FakeNamedDeBruijn, Name, NamedDeBruijn, Term, Constant},
     parser,
@@ -49,6 +49,7 @@ fn load_flat(bytes: &[u8]) -> Result<Program<NamedDeBruijn>> {
 
 pub async fn load_programs_from_file(file: &Path) -> Result<Vec<LoadedProgram>> {
     let filename = file.display().to_string();
+    info!("Loading program from {}", file.display());
     match identify_file_type(file)? {
         FileType::Uplc => {
             let code = fs::read_to_string(file)?;
@@ -78,6 +79,7 @@ pub async fn load_programs_from_file(file: &Path) -> Result<Vec<LoadedProgram>> 
             let inner: Vec<u8> = cbor.into();
             let program = fix_names(load_flat(&inner)?)?;
             let source_map = export.source_map.unwrap_or_default();
+            warn!("Large environment detected: {} bindings", source_map.len());
             Ok(vec![LoadedProgram { filename, program, source_map }])
         }
     }
@@ -97,28 +99,21 @@ pub fn apply_parameters(
     parameters: Vec<PlutusData>,
 ) -> Result<LoadedProgram> {
     let mut term = program.term;
-    let mut source_map_offset = 0u64;
     
     // Apply each parameter by wrapping the term in an Apply node
     for param in parameters {
-        let constant = Constant::Data(param);
+        let arg_term = Term::Constant(Rc::new(Constant::Data(param)));
         term = Term::Apply {
             function: Rc::new(term),
-            argument: Rc::new(Term::Constant(Rc::new(constant))),
+            argument: Rc::new(arg_term),
         };
-        source_map_offset += 1;
     }
     
     let program = Program {
         version: program.version,
         term,
     };
-    
-    let source_map = source_map
-        .into_iter()
-        .map(|(index, location)| (index + source_map_offset, location))
-        .collect();
-        
+
     Ok(LoadedProgram { filename, program, source_map })
 }
 

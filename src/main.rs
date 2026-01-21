@@ -1,32 +1,43 @@
-use std::{env, io::{self, Write}, path::PathBuf};
-use anyhow::Result;
+use std::{env, io::{self, Write}, path::PathBuf, time::Instant};
+use anyhow::{Result, anyhow};
 
 mod loader;
 mod executor;
 mod frames;
+mod diagnostics;
 
-fn print_frame(f: &frames::Frame) {
-    println!("\n{}", "=".repeat(60));
-    println!("Step {}: {}", f.step, f.state_type);
-    println!("{}", "=".repeat(60));
-    println!("Term: {}", f.term);
+use diagnostics::print_diagnostic;
+
+fn print_frame(f: &frames::Frame, previous: Option<&frames::Frame>) {
+    println!("\n{}", "═".repeat(80));
+    println!("Step {:04} │ {} │ CPU: {:>10} │ MEM: {:>10}", 
+        f.step, 
+        format!("{:<10}", f.state_type),
+        f.cpu,
+        f.mem
+    );
+    println!("{}", "─".repeat(80));
+
+    println!("📋 Term:\n{}\n", f.term);
     
     if !f.environment.is_empty() {
-        println!("\nEnvironment ({} bindings):", f.environment.len());
-        for binding in &f.environment {
-            println!("  {}", binding);
+        println!("📦 Environment ({} bindings):", f.environment.len());
+        for binding in f.environment.iter().take(5) {
+            println!("   {}", binding);
+        }
+        if f.environment.len() > 5 {
+            println!("   ... and {} more", f.environment.len() - 5);
         }
     }
     
     if f.context_depth > 0 {
-        println!("\nContinuation depth: {}", f.context_depth);
+        println!("🔀 Continuation Depth: {}", f.context_depth);
     }
-    
-    if let Some(loc) = &f.source_location {
-        println!("\nSource: {}", loc);
+
+    // Add smart diagnostics
+    if let Some(diag) = diagnostics::analyze_frame(f, previous) {
+        print_diagnostic(&diag);
     }
-    
-    println!("\nBudget: CPU={} MEM={}", f.cpu, f.mem);
 }
 
 #[tokio::main]
@@ -42,8 +53,9 @@ async fn main() -> Result<()> {
 
     // Load program
     let programs = loader::load_programs_from_file(&path).await?;
-    let mut program = programs.into_iter().next().expect("no program");
-    
+    let mut program = programs.into_iter().next()
+        .ok_or_else(|| anyhow!("No valid program found in file"))?;
+
     // Apply parameters
     let parsed_params = params.iter().enumerate()
         .map(|(i, p)| loader::parse_parameter(i, p.clone()))
@@ -52,15 +64,25 @@ async fn main() -> Result<()> {
     program = loader::apply_parameters(program, parsed_params)?;
 
     // Execute with debugging
+    let start = Instant::now();
     let snapshots = executor::execute_program(program.program)?;
+    let duration = start.elapsed();
+    println!("Execution took: {:?}", duration);
+    
     let frames = frames::parse_snapshots_to_frames(snapshots, &program.source_map);
 
-    println!("\n🔍 CEK Machine Debugger - {} steps captured\n", frames.len());
+    println!("\n CEK Machine Debugger - {} steps captured\n", frames.len());
 
     // Interactive stepper
     let mut idx = 0;
     loop {
-        print_frame(&frames[idx]);
+        if let Some(frame) = frames.get(idx) {
+            let prev = if idx > 0 { frames.get(idx - 1) } else { None };
+            print_frame(frame, prev);
+        } else {
+            println!("Invalid frame index");
+            break;
+        }
 
         print!("\n[N]ext | [P]rev | [J]ump | [Q]uit > ");
         io::stdout().flush()?;
