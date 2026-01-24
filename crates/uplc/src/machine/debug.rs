@@ -1,6 +1,6 @@
 use super::{
     Context, Machine, MachineState, 
-    value::Value,  // Removed unused Env import
+    value::Value,
     discharge::value_as_term,
     Error,
 };
@@ -9,15 +9,39 @@ use crate::machine::cost_model::{ExBudget, StepKind};
 use serde::Serialize;
 use std::rc::Rc;
 
+// In crates/uplc/src/machine/debug.rs
 #[derive(Clone, Debug, Serialize)]
 pub struct StepSnapshot {
     pub step: usize,
-    pub state_type: String,        // "Compute", "Return", or "Done"
-    pub term: String,              // Current term being evaluated
-    pub environment: Vec<String>,  // Environment values
-    pub context_depth: usize,      // How deep is the continuation stack
+    pub state_type: String,
+    pub term: String,
+    pub environment: Vec<String>,
+    pub context_depth: usize,
     pub cpu: i64,
     pub mem: i64,
+    
+    pub validator_phase: ValidatorPhase,  // Datum check, redeemer check, etc.
+    pub current_check: Option<String>,     // Human-readable current validation
+    pub script_context: Option<ScriptContextSnapshot>,  // Tx inputs/outputs
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub enum ValidatorPhase {
+    DatumValidation,
+    RedeemerValidation,
+    SignerCheck,
+    ValueCheck,
+    TimeRangeCheck,
+    Custom(String),
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct ScriptContextSnapshot {
+    pub inputs: Vec<TxInputSummary>,
+    pub outputs: Vec<TxOutputSummary>,
+    pub signatories: Vec<String>,
+    pub time_range: Option<(i64, i64)>,
+    pub redeemer: String,
 }
 
 impl Machine {
